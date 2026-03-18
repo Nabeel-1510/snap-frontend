@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
 import ProductCard from "@/components/ProductCard";
-import { searchProducts } from "@/lib/api";
+import { searchProducts, checkSearchStatus, getProduct } from "@/lib/api";
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -24,14 +24,51 @@ function SearchContent() {
       return;
     }
     setLoading(true);
+    setTaskId(null);
     searchProducts(query, type)
       .then((data) => {
         setResults(data.results || []);
-        setTaskId(data.task_id || null);
+        if (data.task_id) {
+          setTaskId(data.task_id);
+          // Keep loading true while task is pending
+        } else {
+          setLoading(false);
+        }
       })
-      .catch(() => setResults([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setResults([]);
+        setLoading(false);
+      });
   }, [query, type]);
+
+  useEffect(() => {
+    if (!taskId) return;
+
+    const interval = setInterval(() => {
+      checkSearchStatus(taskId)
+        .then((data) => {
+          if (data.status === "completed" && data.result?.product_id) {
+            clearInterval(interval);
+            getProduct(data.result.product_id).then((prod) => {
+              setResults([prod]);
+              setTaskId(null);
+              setLoading(false);
+            });
+          } else if (data.status === "failed") {
+            clearInterval(interval);
+            setTaskId(null);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          clearInterval(interval);
+          setTaskId(null);
+          setLoading(false);
+        });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [taskId]);
 
   return (
     <main className="flex-1 py-12 px-4">
