@@ -11,6 +11,11 @@ export async function searchProducts(query, type = "text") {
   return data;
 }
 
+export async function checkSearchStatus(taskId) {
+  const { data } = await api.get(`/search/${taskId}`);
+  return data;
+}
+
 export async function getProducts(params = {}) {
   const { data } = await api.get("/products", { params });
   return data;
