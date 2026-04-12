@@ -36,4 +36,9 @@ export async function getCategories() {
   return data;
 }
 
+export async function reanalyzeProduct(id) {
+  const { data } = await api.post(`/reanalyze/${id}`);
+  return data;
+}
+
 export default api;
