@@ -3,19 +3,33 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, CheckCircle2, XCircle, BookOpen, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, CheckCircle2, XCircle, BookOpen, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import PriceComparison from "@/components/PriceComparison";
 import ChatWidget from "@/components/ChatWidget";
-import { getProduct } from "@/lib/api";
+import { getProduct, reanalyzeProduct } from "@/lib/api";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reanalyzing, setReanalyzing] = useState(false);
+
+  const handleReanalyze = async () => {
+    if (!product || reanalyzing) return;
+    setReanalyzing(true);
+    try {
+      await reanalyzeProduct(product.id);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to refresh data. Please try again.");
+      setReanalyzing(false);
+    }
+  };
 
   useEffect(() => {
     if (!params.id) return;
@@ -103,8 +117,18 @@ export default function ProductDetailPage() {
                         <span className="text-xs text-surface-700">AI Score</span>
                       </div>
                       <span className="text-sm text-surface-700">
-                        Based on {product.review_count} reviews
+                        {product.review_count > 0
+                          ? `Based on ${product.review_count} reviews`
+                          : "Based on product analysis"}
                       </span>
+                      <button
+                        onClick={handleReanalyze}
+                        disabled={reanalyzing}
+                        className="ml-auto text-sm bg-brand-50 text-brand-600 border border-brand-200 px-4 py-2 rounded-xl hover:bg-brand-600 hover:text-white transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {reanalyzing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+                        {reanalyzing ? "Refreshing..." : "Refresh Data"}
+                      </button>
                     </div>
                     {product.source_url && (
                       <a
